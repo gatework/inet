@@ -83,7 +83,7 @@ class ReleaseTest < Minitest::Test
   def test_release_notes_preserve_first_item_without_a_blank_line
     release = Release.allocate
     release.instance_variable_set(:@spec, Gem::Specification.load("inet.gemspec"))
-    text = "# Changes\n\n## 0.1.0\n- First change.\n- Second change.\n\n## 0.0.1\n- Previous.\n"
+    text = "# Changes\n\n## #{Inet::VERSION}\n- First change.\n- Second change.\n\n## 0.0.1\n- Previous.\n"
 
     File.stub(:read, text) do
       assert_equal "- First change.\n- Second change.", release.send(:release_notes)

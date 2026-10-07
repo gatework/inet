@@ -22,7 +22,7 @@ gem "inet", "~> 0.1"
 ```ruby
 require "inet"
 
-puts Inet::VERSION # => "0.1.0"
+puts Inet::VERSION # => "0.1.1"
 ```
 
 ## 开发

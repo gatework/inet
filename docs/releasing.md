@@ -36,7 +36,8 @@
 4. 上传该 gem，回读 RubyGems 版本信息和下载内容，确认 SHA256 一致。
 5. 创建对应标签和 GitHub Release，上传同一份 gem 与 `SHA256SUMS`，下载比对后公开发布。
 
-首次推送 `main` 会发布 `0.1.0`。同版本的后续提交会跳过发布；后续更改需要提升版本号。
+`0.1.0` 的首次上传使用了本地构建包；从 `0.1.1` 开始使用上述自动发布流程。
+同版本的后续提交会跳过发布；后续更改需要提升版本号。
 发布只在 `main` 上运行，标签由工作流自动创建。
 
 ## 失败恢复
@@ -49,4 +50,4 @@ RubyGems 上传结果不明时，先查看版本页面和 SHA256，等待索引�
 同版本存在不同 SHA256 时停止发布，需要检查冲突并使用新版本。
 
 `script/release.rb` 是 Actions 内部入口，要求 `gatework/inet` 的 `main`、干净工作区和对应的触发提交。
-本地可以运行 `bundle exec ruby script/verify_package.rb pkg/inet-0.1.0.gem` 验证已有构件。
+本地可以运行 `bundle exec ruby script/verify_package.rb pkg/inet-0.1.1.gem` 验证已有构件。
