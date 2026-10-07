@@ -1,0 +1,24 @@
+# frozen_string_literal: true
+
+require_relative "test_helper"
+require "open3"
+require "rbconfig"
+
+class InetTest < Minitest::Test
+  def test_version_matches_the_package
+    spec = Gem::Specification.load(File.expand_path("../inet.gemspec", __dir__))
+
+    assert_equal Inet::VERSION, spec.version.to_s
+    assert_match(/\A\d+\.\d+\.\d+\z/, Inet::VERSION)
+    assert_empty spec.runtime_dependencies
+  end
+
+  def test_require_is_silent_and_repeatable
+    code = 'require "inet"; require "inet"; abort unless Inet::VERSION.frozen?'
+    stdout, stderr, status = Open3.capture3(RbConfig.ruby, "-Ilib", "-e", code)
+
+    assert_predicate status, :success?
+    assert_empty stdout
+    assert_empty stderr
+  end
+end

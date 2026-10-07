@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: [main]
+    tags-ignore: ['**']
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Ruby ${{ matrix.ruby }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        ruby: ['3.4', '4.0']
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Set reproducible build timestamp
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+      - run: bundle exec rake ci
+      - name: Record artifact checksum
+        if: matrix.os == 'ubuntu-latest' && matrix.ruby == '4.0'
+        working-directory: pkg
+        run: sha256sum ./*.gem > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: matrix.os == 'ubuntu-latest' && matrix.ruby == '4.0'
+        with:
+          name: inet-gem-${{ github.sha }}
+          path: |
+            pkg/*.gem
+            pkg/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
