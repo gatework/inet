@@ -13,6 +13,20 @@ class InetTest < Minitest::Test
     assert_empty spec.runtime_dependencies
   end
 
+  def test_modules_load_independently_without_active_support
+    %w[ipaddr ipv6 set].each do |name|
+      code = <<~RUBY
+        require "inet/#{name}"
+        abort "ActiveSupport loaded" if defined?(ActiveSupport)
+        abort "Algosec namespace leaked" if defined?(Algosec)
+      RUBY
+      stdout, stderr, status = Open3.capture3(RbConfig.ruby, "-Ilib", "-e", code)
+      assert_predicate status, :success?
+      assert_empty stdout
+      assert_empty stderr
+    end
+  end
+
   def test_require_is_silent_and_repeatable
     code = 'require "inet"; require "inet"; abort unless Inet::VERSION.frozen?'
     stdout, stderr, status = Open3.capture3(RbConfig.ruby, "-Ilib", "-e", code)

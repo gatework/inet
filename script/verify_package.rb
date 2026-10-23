@@ -42,6 +42,9 @@ module PackageVerification
       code = <<~RUBY
         require "inet"
         abort "version mismatch" unless Inet::VERSION == ARGV.fetch(0)
+        abort "IPv4 helpers missing" unless Inet::IPAddr.network_cidr("192.0.2.9/24") == "192.0.2.0/24"
+        abort "IPv6 helpers missing" unless Inet::IPv6.parse("::/0").cardinality == 2**128
+        abort "Set operations missing" unless (Inet::Set.new(1..5) - Inet::Set.new(2..4)).ranges == [1..1, 5..5]
         installed = Gem.loaded_specs.fetch("inet").full_gem_path
         abort "loaded source checkout" unless File.realpath(installed).start_with?(File.realpath(ENV.fetch("GEM_HOME")) + "/")
       RUBY

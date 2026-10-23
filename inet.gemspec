@@ -6,8 +6,8 @@ Gem::Specification.new do |spec|
   spec.name = "inet"
   spec.version = Inet::VERSION
   spec.authors = ["inet contributors"]
-  spec.summary = "Foundation for the inet Ruby library"
-  spec.description = "The initial inet package provides a loadable namespace and version information."
+  spec.summary = "IPv4, IPv6 and immutable interval sets"
+  spec.description = "IP address normalization, address ranges, service encoding and immutable integer interval sets."
   spec.homepage = "https://github.com/gatework/inet"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.4"
