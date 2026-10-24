@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.3.0
+
+1. **域名与 DNS**：从 algosec-rb 迁入 `Inet::DomainName` 和 `Inet::DnsResolver`，提供完整域名校验、左侧通配匹配、A/CNAME 解析与 TTL 缓存。
+2. **通用上下文**：解析器以 `context:` 隔离调用方缓存，默认使用 `Time.now`，不依赖 ActiveSupport；声明所需标准库 gem 依赖。
+
 ## 0.2.0
 
 1. **地址与服务运算**：从 algosec-rb 迁入 IPv4、IPv6 地址规范化、范围解析、CIDR 拆分、端口及协议服务编码，公共入口为 `Inet::IPAddr`、`Inet::IPv6`。

@@ -5,6 +5,7 @@ require "open3"
 require "rbconfig"
 require "rubygems/package"
 require "tmpdir"
+require "fileutils"
 
 module PackageVerification
   ROOT = File.expand_path("..", __dir__)
@@ -38,6 +39,7 @@ module PackageVerification
     Bundler.with_unbundled_env do
       env = { "GEM_HOME" => gem_directory, "GEM_PATH" => gem_directory, "RUBYOPT" => nil,
               "RUBYLIB" => nil, "RUBYGEMS_GEMDEPS" => nil }
+      copy_dependencies(directory)
       run(env, directory, "-S", "gem", "install", "--local", "--no-document", artifact)
       code = <<~RUBY
         require "inet"
@@ -45,10 +47,29 @@ module PackageVerification
         abort "IPv4 helpers missing" unless Inet::IPAddr.network_cidr("192.0.2.9/24") == "192.0.2.0/24"
         abort "IPv6 helpers missing" unless Inet::IPv6.parse("::/0").cardinality == 2**128
         abort "Set operations missing" unless (Inet::Set.new(1..5) - Inet::Set.new(2..4)).ranges == [1..1, 5..5]
+        abort "Domain helpers missing" unless Inet::DomainName.matches?("*.example.test", "www.example.test")
+        resolver = Inet::DnsResolver.new(servers: ["192.0.2.53"],
+                                          transport: ->(*) { [["192.0.2.1"], 60] })
+        abort "DNS resolver missing" unless resolver.resolve("example.test").fetch("addresses") == ["192.0.2.1"]
+        abort "ActiveSupport loaded" if defined?(ActiveSupport)
         installed = Gem.loaded_specs.fetch("inet").full_gem_path
         abort "loaded source checkout" unless File.realpath(installed).start_with?(File.realpath(ENV.fetch("GEM_HOME")) + "/")
       RUBY
       run(env, directory, "-e", code, version)
+    end
+  end
+
+  def self.copy_dependencies(directory)
+    # 把锁定的标准库 gem 放入本地源，隔离安装不访问网络，也不借用宿主加载路径。
+    dependencies = Gem::Specification.load(File.join(ROOT, "inet.gemspec")).runtime_dependencies
+    until dependencies.empty?
+      dependency = dependencies.shift
+      dependency_spec = Gem.loaded_specs.fetch(dependency.name)
+      destination = File.join(directory, File.basename(dependency_spec.cache_file))
+      next if File.exist?(destination)
+
+      FileUtils.cp(dependency_spec.cache_file, destination)
+      dependencies.concat(dependency_spec.runtime_dependencies)
     end
   end
 

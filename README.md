@@ -3,9 +3,9 @@
 [![Release](https://github.com/gatework/inet/actions/workflows/release.yml/badge.svg)](https://github.com/gatework/inet/actions/workflows/release.yml)
 [![Gem Version](https://badge.fury.io/rb/inet.svg)](https://rubygems.org/gems/inet)
 
-`inet` 提供 IPv4、IPv6 地址与服务范围运算，以及不可变整数区间集合。加载时不发起网络请求或启动后台任务。
+`inet` 提供 IPv4、IPv6 地址与服务范围运算，域名匹配、带 TTL 缓存的 DNS 解析，以及不可变整数区间集合。加载时不发起网络请求或启动后台任务。
 
-要求 Ruby 3.4 或更高版本，无运行时依赖，采用 MIT 许可证。
+要求 Ruby 3.4 或更高版本，只依赖标准库 gem，采用 MIT 许可证。
 
 ## 安装与使用
 
@@ -16,7 +16,7 @@ gem install inet
 也可以在 Gemfile 中添加：
 
 ```ruby
-gem "inet", "~> 0.2"
+gem "inet", "~> 0.3"
 ```
 
 ```ruby
@@ -47,6 +47,34 @@ allowed.cardinality # => 5
 可分别 `require "inet/ipaddr"`、`require "inet/ipv6"` 或 `require "inet/set"`。
 
 这三个模块迁自 Gatework 的 algosec-rb，保留其公共方法与运算行为；最低 Ruby 版本自带的 `Range#overlap?` 替代原 ActiveSupport 加载。源代码采用 MIT 许可证，版权声明见 [LICENSE](LICENSE)。
+
+## 域名与 DNS
+
+```ruby
+Inet::DomainName.normalize("WWW.Example.test.") # => "www.example.test"
+Inet::DomainName.exact?("example.test")         # => true
+Inet::DomainName.matches?("*.example.test", "www.example.test") # => true
+
+resolver = Inet::DnsResolver.new(context: { "device_id" => 42 }, servers: ["192.0.2.53"])
+answer = resolver.resolve("www.example.test") # 此时才查询 DNS
+answer.fetch("status")    # => "resolved"、"unresolved" 或 "unsupported"
+answer.fetch("addresses") # => IPv4 地址数组
+```
+
+域名只接受至少两个 ASCII 标签的完整名称，单个尾点会被移除；不支持 IDNA 转码和搜索域。
+通配仅支持 `*.example.test`，匹配一层或多层子域，不匹配根名称 `example.test`。
+`require "inet/domain_name"` 和 `require "inet/dns_resolver"` 也可独立加载。
+
+解析器只查询 A 记录，跟随最多 8 个 CNAME，使用整条链中最短的 TTL；每次等待为 1 秒。
+`servers:` 最多指定三个 DNS 服务器，省略时使用系统 DNS。`context:` 为字符串键的 JSON 对象，
+由解析器复制并冻结，供调用方隔离租户或设备缓存。返回的 `source` 保留上下文，追加
+`source`（系统 DNS 为 `system`，显式 DNS 为 `device`）和 `servers`，这两个键由解析器管理。
+
+返回值及嵌套内容不可变，包含 `status`、`addresses`、`resolved_at`、`expires_at`、`source`、`error`。
+失败或没有 A 记录返回 `unresolved`，不支持的域名返回 `unsupported`，都缓存 15 秒；不会把失败当成成功的空集合。
+可选 `store:` 接收实现 `read(key)` 与 `write(key, value, expires_in:)` 的缓存，实例内也按 TTL 复用结果。
+`clock:` 默认 `Time.now`；测试可注入 `transport:`（接收域名及显式服务器数组，返回 `[地址数组, TTL秒数]`）
+或 `dns_class:`。加载 gem 不发起 DNS 查询。
 
 ## 开发
 

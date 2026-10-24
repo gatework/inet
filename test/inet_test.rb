@@ -10,12 +10,14 @@ class InetTest < Minitest::Test
 
     assert_equal Inet::VERSION, spec.version.to_s
     assert_match(/\A\d+\.\d+\.\d+\z/, Inet::VERSION)
-    assert_empty spec.runtime_dependencies
+    assert_equal %w[digest ipaddr json resolv time], spec.runtime_dependencies.map(&:name).sort
   end
 
   def test_modules_load_independently_without_active_support
-    %w[ipaddr ipv6 set].each do |name|
+    %w[ipaddr ipv6 set domain_name dns_resolver].each do |name|
       code = <<~RUBY
+        require "inet/#{name}"
+        require "inet"
         require "inet/#{name}"
         abort "ActiveSupport loaded" if defined?(ActiveSupport)
         abort "Algosec namespace leaked" if defined?(Algosec)
